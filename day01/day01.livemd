@@ -1,0 +1,43 @@
+# Day 1 - Calorie Counting
+
+```elixir
+Mix.install([{:kino, "~> 0.7.0"}])
+```
+
+## Part 1 - Who has the most calories?
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+sample_input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn calories ->
+    String.split(calories, "\n", trim: true) |> Enum.map(&String.to_integer/1)
+  end)
+```
+
+```elixir
+total_cals =
+  sample_input
+  |> Enum.map(fn cals ->
+    Enum.sum(cals)
+  end)
+
+max_cals =
+  total_cals
+  |> Enum.max()
+```
+
+## Part 2 - Sum of top 3 max cals
+
+```elixir
+top_three =
+  total_cals
+  |> Enum.sort(:desc)
+  |> Enum.take(3)
+  |> Enum.sum()
+```
