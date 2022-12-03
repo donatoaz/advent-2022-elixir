@@ -1,0 +1,139 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 2 - Rock Paper Scissors
+
+```elixir
+Mix.install([{:kino, "~> 0.7.0"}])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+A for Rock, B for Paper, and C for Scissors.
+X for Rock, Y for Paper, and Z for Scissors.
+
+The score for a single round is the score for the shape you selected (1 for Rock, 2 for Paper, and 3 for Scissors) plus the score for the outcome of the round (0 if you lost, 3 if the round was a draw, and 6 if you won)
+
+```elixir
+sample_input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+scores_map = %{
+  # opponent: rocks, you: rocks => draw
+  "A X" => 1 + 3,
+  # opponent: rocks, you: paper => win
+  "A Y" => 2 + 6,
+  # opponent: rocks, you: scissors => loss
+  "A Z" => 3 + 0,
+  # opponent: paper, you: rocks => loss
+  "B X" => 1 + 0,
+  # opponent: paper, you: paper => draw
+  "B Y" => 2 + 3,
+  # opponent: paper, you: scissors => win
+  "B Z" => 3 + 6,
+  # opponent: scissors, you: rock => win
+  "C X" => 1 + 6,
+  # opponent: scissors, you: paper => loss
+  "C Y" => 2 + 0,
+  # opponent: scissors, you: rock => draw
+  "C Z" => 3 + 3
+}
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  "A X" => 4,
+  "A Y" => 8,
+  "A Z" => 3,
+  "B X" => 1,
+  "B Y" => 5,
+  "B Z" => 9,
+  "C X" => 7,
+  "C Y" => 2,
+  "C Z" => 6
+}
+```
+
+```elixir
+sample_input
+|> Enum.map(fn play ->
+  Map.get(scores_map, play)
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+11449
+```
+
+## Part 2
+
+X means you need to lose, Y means you need to end the round in a draw, and Z means you need to win.
+
+```elixir
+new_scores_map = %{
+  # opponent: rocks, you: scissors => loss
+  "A X" => 3 + 0,
+  # opponent: paper, you: rocks => loss
+  "B X" => 1 + 0,
+  # opponent: scissors, you: paper => loss
+  "C X" => 2 + 0,
+  # opponent: rocks, you: rocks => draw
+  "A Y" => 1 + 3,
+  # opponent: paper, you: paper => draw
+  "B Y" => 2 + 3,
+  # opponent: scissors, you: scissors => draw
+  "C Y" => 3 + 3,
+  # opponent: rocks, you: paper => win
+  "A Z" => 2 + 6,
+  # opponent: paper, you: scissors => win
+  "B Z" => 3 + 6,
+  # opponent: scissors, you: rock => win
+  "C Z" => 1 + 6
+}
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  "A X" => 3,
+  "A Y" => 4,
+  "A Z" => 8,
+  "B X" => 1,
+  "B Y" => 5,
+  "B Z" => 9,
+  "C X" => 2,
+  "C Y" => 6,
+  "C Z" => 7
+}
+```
+
+```elixir
+sample_input
+|> Enum.map(fn play ->
+  Map.get(new_scores_map, play)
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+13187
+```
