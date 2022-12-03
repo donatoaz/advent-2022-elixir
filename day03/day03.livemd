@@ -1,0 +1,116 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 3 - Rucksack Reorganization
+
+```elixir
+Mix.install([{:kino, "~> 0.7.0"}])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+sample_input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&Kernel.to_charlist/1)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+['BdbzzddChsWrRFbzBrszbhWMLNJHLLLLHZtSLglFNZHLJH', 'nnfMwqpQTMffHlNNLllHnZSS',
+ 'cGpcMwfppfqcjcTCBBzWDsDbDrjzWz', 'LhfjhcdjcGdhFfdGfdjdvwCCZMvvLvWwMLCLSwZC',
+ 'rDnsbmptPmlbQMCrQWQQBZQW', 'gltgVPngDPbptPsbPzVgmDldfTdfczThjJJjfMcJdFHjjH',
+ 'dGlgDflTLLLrRLTLVdQLcQMnbvHbbFzNNvMbnHHn', 'sZjWJJCSjWqfCqSjSmJSbFvCzBMBBzHncHNvMBHN',
+ 'twqqwpZwfrlwRwDGDR', 'zCGGFTQMQrsNRNGZdR', 'cLLQgPDpgcgmvPRHrwBdvrNZ',
+ 'glWpmJWQDcJpQnpjSmbhFtMnqFfCVTCFCFFM', 'zNZWFNZBFrGTdBcZZBdJTrGrmgvppgDHwHmgVHCHCvCPDjzC',
+ 'qtqqPnLSfLwvjvvgvvqH', 'MtbLLLQbRfPRfnbnnLMtnsbdBNsrGWNWcNcTBWZrrcrWcJ',
+ 'sZwstbbDVlHtbhcrhhZLrRpNQN', 'jqGjjFjWnzWGgqWjJJNphnLMRhLhcrhcrSLN', 'qCJzFJdvmHvbtpbb',
+ 'ZSRsvvQvZpsRQGJghClPCwGPChCP', 'FVdMLDdtDRdDcBtmcVFntwgJJTlnNPwJnlTlwlTPgN', 'VqttMWFmDbjbzrSWRQ',
+ 'TsDSBcwshdwSCrgRWZBvgGRG', 'LPVJLqqJbbzpFqwpbvgGRmZPrmZgCvCCfr', 'tzJlJzQllFLqtwHhjNSdtthjDhTN',
+ 'fsDLDDnwvnSdqLSsFSDfsLpbgVttPMpPNjMWVMNfpjgW', 'jhHmBmlrTBBHRPVtMZbppNPPZB',
+ 'JmTTrTmjRTJqSQQSFqQw', 'HPzZFgPFMCHJCcZMcDQGwpLqPLqppwhGvv',
+ 'BrWRqbqRsTSTqNddrVrthLQVwnpwphnvnDnGvGDn', 'tSbBfsRbTfqjJqjCqm',
+ 'pCqrqzmqZzrmCCvCJwJPBRwJBWBmwWBJ', 'VqbqbjFLFfSHnfctBwDdDFTwtRRTDF',
+ 'LVcnbjHLSqHnhbSGGppCMMZMphpNrQ', 'PhTcTPsSPCMvvhhMRPttbNWfNsWFNfWWtpNw',
+ 'rdQrDbJBVVjrBVdLjHHHWNWwfHtzzNtFpZZptppg', 'JJVGGdddjDjDJmdjGqqRSbPMTvcRlqnnMlvT',
+ 'SqGfTrBlSrrrfGGQvCnqZhZmPPhvJh', 'LdVNwgsjdjHmjWwDsDpwsHWtnCnQQQQNnvCnbJZQbNbtZZ',
+ 'DjssDHLLVppDssdLspswFLVjzfFMTfSBcTRcrFSBzBTzmGzr', 'JSJJqlldpJlcdVWMlgMJrcCjrhzHCwTjHrQzwTzZ',
+ 'bBvsGBGNFDNRFNFBRDPsDDHCChhhrZRQQzhjhCjTzWCr', 'FvbLFGDDtWDFBnPGFDWGqJMgJpSdVStllttlppVS',
+ 'clpBdBQBsqGpQbVdqTTWRTSFgLLggffg', 'NzvwmHvZtZZgbDSCLDmfmm',
+ 'jPJjthHzNwPvvjwjNzPzztZBlrccpbVGBQhlGBVlrpnpBs', 'NmFFGlGmzCrNWHvFmFWCFvQPTdDDlbbdgJPtgbbdPDcc',
+ 'RwfBqLwZqffqnPbdDgVQDdtRbT', 'hnptqLMMLwqjMMjzSzHmhvNNrvvhhz',
+ 'hqVrDdPdVDqjsDrjjqsfrrWlctvHJNLfvNcLHNNZRNZHvfZL', 'CSnWQSGBBSnmBnTmSbQbNZZMJNJMccGNHLZNNvNv',
+ ...]
+```
+
+```elixir
+defmodule Priority do
+  def offset(chr) when chr > 96, do: 96
+  def offset(chr) when chr <= 96, do: 38
+end
+
+sample_input
+# Split into left and right rucksacks
+|> Enum.map(fn rucksack ->
+  len = round(length(rucksack) / 2)
+  Enum.split(rucksack, len)
+end)
+# Get the intersection using -- list operator
+|> Enum.map(fn {left, right} ->
+  # get intersection, and since it can be repeated, we get the first one
+  (left -- left -- right) |> Enum.at(0)
+end)
+# Map to the priorirty
+|> Enum.map(fn item ->
+  # convert to priority using the ascii code and the prio
+  item - Priority.offset(item)
+end)
+# sum total
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+7889
+```
+
+## Part 2
+
+```elixir
+sample_input
+# group rucksacks 3 by 3
+|> Enum.chunk_every(3)
+# Get the common element within the group
+|> Enum.map(fn group ->
+  group
+  |> Enum.reduce(fn rucksack, rep ->
+    rep -- rep -- rucksack
+  end)
+  |> Enum.at(0)
+end)
+# Convert to priority with offset
+|> Enum.map(fn badge ->
+  badge - Priority.offset(badge)
+end)
+# Sum total
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2825
+```
