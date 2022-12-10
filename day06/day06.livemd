@@ -1,0 +1,86 @@
+# Day 6 - Tuning Trouble
+
+```elixir
+Mix.install([{:kino, "~> 0.8.0"}, {:kino_bumblebee, "~> 0.1.0"}, {:exla, "~> 0.4.1"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+message =
+  input
+  |> Kino.Input.read()
+```
+
+## Part 1
+
+```elixir
+defmodule CommProtocol do
+  @moduledoc """
+  This module implements the elf communication protocol
+
+    ## Examples
+
+      iex> CommProtocol.detect_marker("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 4)
+      7
+
+      iex> CommProtocol.detect_marker("bvwbjplbgvbhsrlpgdmjqwftvncz", 4)
+      5
+
+      iex> CommProtocol.detect_marker("nppdvjthqldpwncqszvftbrmjlhg", 4)
+      6
+
+      iex> CommProtocol.detect_marker("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 4)
+      10
+
+      iex> CommProtocol.detect_marker("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 4)
+      11
+
+      iex> CommProtocol.detect_marker("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 14)
+      19
+
+      iex> CommProtocol.detect_marker("bvwbjplbgvbhsrlpgdmjqwftvncz", 14)
+      23
+
+      iex> CommProtocol.detect_marker("nppdvjthqldpwncqszvftbrmjlhg", 14)
+      23
+
+      iex> CommProtocol.detect_marker("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 14)
+      29
+
+      iex> CommProtocol.detect_marker("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 14)
+      26
+
+  """
+  def detect_marker(msg, sz) when is_binary(msg), do: detect_marker(String.to_charlist(msg), sz)
+
+  def detect_marker(msg, sz) when is_list(msg) do
+    start =
+      msg
+      |> Enum.chunk_every(sz, 1)
+      |> Enum.with_index()
+      |> Enum.find(fn {marker, _pos} ->
+        length(Enum.uniq(marker)) == sz
+      end)
+      |> elem(1)
+
+    start + sz
+  end
+end
+```
+
+```elixir
+CommProtocol.detect_marker(message, 4)
+```
+
+## Part 2
+
+```elixir
+CommProtocol.detect_marker(message, 14)
+```
