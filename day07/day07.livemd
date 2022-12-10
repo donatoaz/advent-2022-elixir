@@ -1,0 +1,263 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 7 - No Space Left On Device
+
+```elixir
+Mix.install([{:kino, "~> 0.8.0"}, {:kino_bumblebee, "~> 0.1.0"}, {:exla, "~> 0.4.1"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+cmd_history =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+["$ cd /", "$ ls", "dir bqc", "dir mwmlf", "dir ngn", "143562 nrwjb", "78449 qqvdcclf", "dir qrnm",
+ "dir smfzmmhc", "116085 tvrms", "dir vrdrsj", "$ cd bqc", "$ ls", "5693 qqvdcclf", "$ cd ..",
+ "$ cd mwmlf", "$ ls", "dir cmfphpc", "dir lqqshq", "dir mwmlf", "dir rlf", "dir smfzmmhc",
+ "$ cd cmfphpc", "$ ls", "235620 tprth.gjn", "82743 vrdrsj.fbl", "$ cd ..", "$ cd lqqshq", "$ ls",
+ "94188 crswqlvd.nsj", "dir dttthls", "60078 lbsfsspm", "dir lqp", "74624 nrwjb",
+ "247709 tjhcqw.wrq", "267693 tvrms", "dir zshrcgfn", "$ cd dttthls", "$ ls", "109072 nrwjb",
+ "31512 qqvdcclf", "$ cd ..", "$ cd lqp", "$ ls", "237917 nrwjb", "45489 vrdrsj.ntw", "$ cd ..",
+ "$ cd zshrcgfn", "$ ls", "185533 smfzmmhc.zzd", ...]
+```
+
+## Part 1
+
+Let's first build the tree
+
+```elixir
+defmodule TreeBuilder do
+  def parse_history(hist), do: _parse_history(hist, [], %{})
+
+  defp _parse_history([], _, tree), do: tree
+
+  defp _parse_history(["$ cd .." | rest], [_ | dirs], tree) do
+    _parse_history(rest, dirs, tree)
+  end
+
+  defp _parse_history(["$ cd " <> dir | rest], dirs, tree) do
+    _parse_history(rest, [dir] ++ dirs, tree)
+  end
+
+  defp _parse_history(["$ ls" | rest], dirs, tree) do
+    # we need to get from rest the result of the ls
+    {ls_result, hist} = parse_ls(rest)
+
+    path = Path.join(dirs |> Enum.reverse())
+    tree = Map.put(tree, path, ls_result)
+
+    _parse_history(hist, dirs, tree)
+  end
+
+  @doc """
+  gets the results of an ls command from the stdout history
+
+  ## Examples
+
+      iex> TreeBuilder.parse_ls(["dir a", "14848514 b.txt", "8504156 c.dat", "dir d", "$ cd a", "$ ls"])
+      {["dir a", "14848514 b.txt", "8504156 c.dat", "dir d"], ["$ cd a", "$ ls"]}
+
+      iex> TreeBuilder.parse_ls(["$ cd a", "$ ls"])
+      {[], ["$ cd a", "$ ls"]}
+
+  """
+  def parse_ls(hist) do
+    hist
+    |> Enum.split_while(fn
+      "$" <> _ -> false
+      _ -> true
+    end)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2 doctests, 0 failures
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, TreeBuilder, <<70, 79, 82, 49, 0, 0, 11, ...>>, {:parse_ls, 1}}
+```
+
+```elixir
+defmodule CalcSize do
+  @doc """
+  recursevely calculate folder size
+
+  ## Examples
+
+      iex> CalcSize.size(%{ "/a/e" => ["584 i"]}, "/a/e")
+      584
+
+      iex> CalcSize.size(%{"/d" => ["4060174 j", "8033020 d.log", "5626152 d.ext", "7214296 k"]}, "/d")
+      24933642
+
+      iex> CalcSize.size(%{"/a" => ["dir e", "29116 f", "2557 g", "62596 h.lst"], "/a/e" => ["584 i"]}, "/a")
+      94853
+
+      iex> CalcSize.size(%{"/" => ["dir a", "14848514 b.txt", "8504156 c.dat", "dir d"], "/a" => ["dir e", "29116 f", "2557 g", "62596 h.lst"], "/a/e" => ["584 i"], "/d" => ["4060174 j", "8033020 d.log", "5626152 d.ext", "7214296 k"]}, "/")
+      48381165
+
+  """
+  def size(tree, name) do
+    fds = Map.get(tree, name)
+
+    fds
+    |> Enum.reduce(0, fn
+      "dir " <> dir, sz -> sz + CalcSize.size(tree, Path.join(name, dir))
+      fd, sz -> (String.split(fd, " ") |> Enum.at(0) |> String.to_integer()) + sz
+    end)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+4 doctests, 0 failures
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, CalcSize, <<70, 79, 82, 49, 0, 0, 9, ...>>, {:size, 2}}
+```
+
+```elixir
+folders = TreeBuilder.parse_history(cmd_history)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  "/ngn/fqbph/lzjf" => ["40821 lfgh.jwg", "dir rplfgb"],
+  "/mwmlf/mwmlf/mwmlf" => ["dir wnn"],
+  "/mwmlf/rlf/qpgmrj/pbc" => ["150816 tprth.gjn"],
+  "/smfzmmhc/mwmlf" => ["263186 mwmlf.fqd"],
+  "/vrdrsj/pnds/jwcjpt/scljqqq" => ["228515 hrvlgmjb.nhn", "246019 mwmlf", "9535 mwmlf.nvm"],
+  "/smfzmmhc/vrdrsj" => ["dir mwwr", "dir rlf"],
+  "/vrdrsj/pnds/jwcjpt/rfh" => ["29828 hgwh.tnl", "dir rchll", "dir smfzmmhc"],
+  "/vrdrsj" => ["dir bfgbvlcd", "131293 fgh.djg", "125876 lcwjtdf.sbl", "dir pnds", "263022 tvrms"],
+  "/ngn/fqbph/bgtbmzj/jmvzv/smfzmmhc/gqms/rlf/hvtn/zzsfgzc" => ["116544 vrdrsj"],
+  "/ngn/fqbph/bgtbmzj/jmvzv/hfmtzbhf/ldt/zbcfv/vrdrsj" => ["220800 zwdbh"],
+  "/ngn/mwmlf/fvjtnl" => ["62568 sllvfsf", "286839 tjhcqw.wrq", "241004 zvqrg.bsg"],
+  "/smfzmmhc/pvnbj/cfmn/sfvd/qpzbffd" => ["264911 mwmlf.rvg", "dir rlf", "32109 svhwhw.fdp",
+   "155713 tjhcqw.wrq", "dir vrdrsj"],
+  "/smfzmmhc/vrdrsj/mwwr/lhz/ssz" => ["107472 hcnsgjhj"],
+  "/mwmlf/rlf/ncrlvggp/nnqgqqj" => ["dir fvbhh"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/fhdvgvtz/lrsjg/jgfpvdc/mwmlf/grqng" => ["216391 tvrms"],
+  "/ngn/mwmlf" => ["dir dqvhgnj", "dir fvjtnl", "dir jfsgp", "230725 tjhcqw.wrq", "2872 tvrms",
+   "dir zszcsbl"],
+  "/smfzmmhc/pvnbj/cfmn/sfvd/wscsr/vrdrsj/vvtl" => ["118913 qqvdcclf", "291087 tjhcqw.wrq"],
+  "/mwmlf/cmfphpc" => ["235620 tprth.gjn", "82743 vrdrsj.fbl"],
+  "/mwmlf/mwmlf/mwmlf/wnn/thd" => ["36125 lgt"],
+  "/mwmlf/rlf/ncrlvggp" => ["81450 fqtrpm.mqr", "146399 jtbr", "dir nnqgqqj", "288302 qqvdcclf"],
+  "/ngn/fqbph/rlf" => ["37853 qst.zgc"],
+  "/vrdrsj/pnds/jwcjpt/rfh/rchll" => ["240042 rdj.wrv"],
+  "/vrdrsj/pnds/pvnbz/hrvlgmjb" => ["dir vggpr"],
+  "/vrdrsj/pnds/jwcjpt/rfh/smfzmmhc/vrdrsj" => ["302512 phmvhpvb.fwh", "dir tjrpwhc"],
+  "/ngn/fqbph/bgtbmzj/jmvzv/smfzmmhc/mwmlf/hmpvn" => ["55892 qqvdcclf"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/hrvlgmjb/vds" => ["247595 gnclhrw.mwt", "303125 pcdnbq.zbs",
+   "38092 tprth.gjn", "dir vrdrsj"],
+  "/ngn/fqbph/bgtbmzj/szp" => ["37741 qqvdcclf", "dir vrdrsj"],
+  "/ngn/fqbph/bgtbmzj/jmvzv/smfzmmhc" => ["dir gqms", "dir mwmlf", "21587 nrwjb", "184621 zvq.lvr"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/fhdvgvtz/lrsjg/jgfpvdc" => ["265563 chlgpdsp.hrv", "dir dsc",
+   "dir gvrg", "dir mwmlf", "dir qrqvl", "100762 rlf", "300872 sjvgwmdg.qhg", "164004 tzqmh",
+   "300736 zhgmdcl.bfq"],
+  "/ngn/fqbph/bgtbmzj/jmvzv/smfzmmhc/mwmlf" => ["dir hmpvn", "dir shlnfcpz"],
+  "/smfzmmhc/sjqwr/vrdrsj/vrdrsj" => ["250310 hrvlgmjb.bbf", "130543 mwmlf.lbq"],
+  "/mwmlf/mwmlf/mwmlf/wnn" => ["dir thd"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/rlf/vrdrsj/jtnqr" => ["dir bct", "202702 grstm.ltj", "dir mwmlf",
+   "258253 tvrms"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/hrvlgmjb" => ["dir fjnp", "70585 hrvlgmjb", "dir qsrgzrdf",
+   "43606 rmjzzgrs", "dir vds", "dir vrdrsj", "35098 wthtcg.wgd"],
+  "/smfzmmhc/pvnbj/czmw/gdsgw" => ["298839 dbwsmwnb.svt", "170672 tprth.gjn"],
+  "/smfzmmhc/ncgjsjj" => ["204801 nrwjb", "116293 rdrmctwg.nqc", "36548 tjhcqw.wrq"],
+  "/smfzmmhc/pvnbj/cnhmcjp" => ["263233 tjhcqw.wrq"],
+  "/vrdrsj/bfgbvlcd" => ["276134 vrdrsj"],
+  "/smfzmmhc/vwfnglr/mtvgvvcr/smfzmmhc/jjslqwn" => ["98708 mwmlf.qtq"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/hrvlgmjb/fjnp" => ["19740 qqvdcclf", "dir smfzmmhc"],
+  "/smfzmmhc/pvnbj/cfmn/sfvd/wscsr" => ["132663 dnbvw.zwd", "dir ffthd", "293463 hrvlgmjb.fwh",
+   "dir lhjvfdh", "194357 nrwjb", "dir smj", "56668 tprth.gjn", "303099 tvrms", "dir vrdrsj"],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/fhdvgvtz/lrsjg/jgfpvdc/dsc" => ["284520 rtt.qps", "263890 smfzmmhc"],
+  "/smfzmmhc/pvnbj/drfzgwtz" => ["257122 tprth.gjn"],
+  "/ngn/fqbph/pdsdttz" => ["294779 tprth.gjn"],
+  "/smfzmmhc/pvnbj/czmw/gfd" => ["193212 tld"],
+  "/ngn/fqbph/bgtbmzj/jmvzv" => ["dir hfmtzbhf", "61556 jzbvmc", "dir scjpjp", "237487 sgh", ...],
+  "/smfzmmhc/vrdrsj/mwwr" => ["dir lhz"],
+  "/mwmlf" => ["dir cmfphpc", "dir lqqshq", ...],
+  "/vrdrsj/pnds/jwcjpt/dcmcgc/hrvlgmjb/vds/vrdrsj" => ["dir tnjg"],
+  "/smfzmmhc/vrdrsj/mwwr/lhz/vrdrsj" => [...],
+  ...
+}
+```
+
+```elixir
+folders
+|> Enum.map(fn {k, _} -> CalcSize.size(folders, k) end)
+|> Enum.filter(fn sz -> sz <= 100_000 end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1325919
+```
+
+## Part 2
+
+```elixir
+total_disk_size = 70_000_000
+
+used_disk_size = CalcSize.size(folders, "/")
+
+unused_disk_size = total_disk_size - used_disk_size
+
+update_disk_size = 30_000_000
+
+needed_disk_size = update_disk_size - unused_disk_size
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2036703
+```
+
+```elixir
+folders
+|> Enum.map(fn {folder, _} -> CalcSize.size(folders, folder) end)
+|> Enum.sort()
+|> Enum.find(fn size -> size >= needed_disk_size end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2050735
+```
