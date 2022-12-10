@@ -1,0 +1,390 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Day 5 - Supply Stacks
+
+```elixir
+Mix.install([{:kino, "~> 0.8.0"}, {:kino_bumblebee, "~> 0.1.0"}, {:exla, "~> 0.4.1"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Part 1
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+[crates_, movements_] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+["                    [Q]     [P] [P]\n                [G] [V] [S] [Z] [F]\n            [W] [V] [F] [Z] [W] [Q]\n        [V] [T] [N] [J] [W] [B] [W]\n    [Z] [L] [V] [B] [C] [R] [N] [M]\n[C] [W] [R] [H] [H] [P] [T] [M] [B]\n[Q] [Q] [M] [Z] [Z] [N] [G] [G] [J]\n[B] [R] [B] [C] [D] [H] [D] [C] [N]\n 1   2   3   4   5   6   7   8   9 ",
+ "move 3 from 6 to 2\nmove 5 from 6 to 7\nmove 6 from 2 to 5\nmove 1 from 9 to 7\nmove 1 from 1 to 9\nmove 1 from 5 to 3\nmove 1 from 2 to 5\nmove 3 from 4 to 5\nmove 10 from 7 to 3\nmove 1 from 4 to 9\nmove 6 from 8 to 7\nmove 4 from 7 to 8\nmove 1 from 7 to 3\nmove 1 from 1 to 2\nmove 1 from 2 to 8\nmove 1 from 9 to 1\nmove 3 from 9 to 4\nmove 4 from 8 to 3\nmove 4 from 7 to 1\nmove 4 from 4 to 6\nmove 2 from 8 to 7\nmove 9 from 3 to 8\nmove 2 from 7 to 4\nmove 3 from 4 to 9\nmove 4 from 1 to 9\nmove 4 from 3 to 9\nmove 2 from 1 to 4\nmove 1 from 4 to 6\nmove 3 from 3 to 2\nmove 1 from 2 to 8\nmove 1 from 2 to 7\nmove 3 from 6 to 2\nmove 2 from 6 to 7\nmove 4 from 2 to 3\nmove 3 from 7 to 9\nmove 2 from 5 to 6\nmove 15 from 9 to 4\nmove 4 from 9 to 2\nmove 12 from 5 to 4\nmove 9 from 8 to 5\nmove 25 from 4 to 7\nmove 1 from 4 to 7\nmove 1 from 4 to 8\nmove 2 from 2 to 5\nmove 1 from 4 to 2\nmove 23 from 7 to 6\nmove 2 from 5 to 2\nmove 22 from 6 to 8\nmove 4 from 5 to 9\nmove 1 from 7 to 9\nmove 2 from 6 to 4\nmove 2 from 4 to 7\nmove 25 from 8 to 3\nmove 1 from 2 to 1\nmove 3 from 2 to 3\nmove 1 from 6 to 8\nmove 1 from 1 to 8\nmove 1 from 2 to 8\nmove 1 from 8 to 1\nmove 4 from 5 to 7\nmove 1 from 8 to 4\nmove 5 from 9 to 8\nmove 5 from 8 to 9\nmove 1 from 8 to 5\nmove 3 from 5 to 4\nmove 3 from 9 to 1\nmove 30 from 3 to 4\nmove 3 from 1 to 4\nmove 2 from 9 to 5\nmove 4 from 7 to 9\nmove 16 from 4 to 8\nmove 6 from 3 to 9\nmove 3 from 7 to 3\nmove 19 from 4 to 7\nmove 8 from 9 to 4\nmove 1 from 1 to 9\nmove 13 from 7 to 9\nmove 3 from 7 to 8\nmove 3 from 5 to 9\nmove 4 from 8 to 3\nmove 2 from 7 to 3\nmove 14 from 9 to 4\nmove 10 from 3 to 1\nmove 12 from 4 to 8\nmove 6 from 1 to 9\nmove 1 from 1 to 2\nmove 1 from 7 to 1\nmove 6 from 9 to 3\nmove 17 from 8 to 6\nmove 10 from 8 to 5\nmove 1 from 7 to 8\nmove 1 from 9 to 5\nmove 2 from 3 to 1\nmove 4 from 5 to 9\nmove 1 from 8 to 7\nmove 6 from 9 to 7\nmove 4 from 4 to 2\nmove 3 from 4 to 6\nmove 4 from 5 to 9\nmove 4 from 9 to 3\nmove 1 from 2 to 4\nmove 4 from 4 to 7\nmove 3 from 5 to 3\nmove 1 from 4 to 5\nmove 5 from 1 to 2\nmove 1 from 1 to 9\nmove 7 from 2 to 7\nmove 1 from 5 to 7\nmove 8 from 3 to 5\nmove 20 from 6 to 7\nmove 9 from 7 to 9\nmove 2 from 2 to 9\nmove 2 from 3 to 1\nmove 2 from 1 to 3\nmove 2 from 3 to 4\nmove 2 from 4 to 6\nmove 1 from 3 to 9\nmove 1 from 4 to 9\nmove 1 from 6 to 9\nmove 2 from 5 to 8\nmove 2 from 8 to 5\nmove 1 from 6 to 7\nmove 2 from 5 to 8\nmove 6 from 9 to 5\nmove 2 from 8 to 6\nmove 11 from 9 to 2\nmove 1 from 6 to 5\nmove 11 from 2 to 5\nmove 1 from 6 to 4\nmove 7 from 5 to 9\nmove 7 from 9 to 1\nmove 1 from 4 to 9\nmove 28 from 7 to 5\nmove 1 from 7 to 5\nmove 5 from 5 to 9\nmove 5 from 9 to 3\nmove 6 from 1 to 8\nmove 1 from 1 to 7\nmove 5 from 3 to 2\nmove 1 from 7 to 8\nmove 7 from 8 to 1\nmove 1 from 9 to 4\nmove 2 from 2 to 5\nmove 22 from 5 to 3\nmove 1 from 7 to 8\nmove 1 from 4 to 7\nmove 1 from 8 to 9\nmove 1 from 9 to 4\nmove 14 from 5 to 7\nmove 5 from 5 to 9\nmove 19 from 3 to 4\nmove 1 from 2 to 9\nmove 2 from 2 to 5\nmove 1 from 5 to 1\nmove 6 from 1 to 7\nmove 2 from 7 to 6\nmove 1 from 1 to 9\nmove 2 from 5 to 8\nmove 8 from 4 to 5\nmove 3 from 4 to 7\nmove 3 from 3 to 5\nmove 2 from 8 to 9\nmove 16 from 7 to 5\nmove 9 from 4 to 6\nmove 22 from 5 to 3\nmove 1 from 5 to 8\nmove 1 from 8 to 7\nmove 10 from 3 to 4\nmove 1 from 5 to 4\nmove 10 from 4 to 5\nmove 8 from 5 to 2\nmove 5 from 2 to 7\nmove 5 from 7 to 1\nmove 4 from 7 to 6\nmove 3 from 9 to 7\nmove 2 from 2 to 3\nmove 3 from 5 to 1\nmove 6 from 9 to 7\nmove 5 from 7 to 8\nmove 6 from 1 to 5\nmove 6 from 3 to 4\nmove 4 from 4 to 2\nmove 1 from 4 to 6\nmove 5 from 8 to 7\nmove 3 from 2 to 3\nmove 1 from 1 to 4\nmove 1 from 1 to 9\nmove 2 from 2 to 1\nmove 2 from 4 to 3\nmove 4 from 3 to 7\nmove 3 from 7 to 3\nmove 13 from 6 to 1\nmove 1 from 9 to 2\nmove 6 from 3 to 5\nmove 8 from 1 to 4\nmove 1 from 2 to 7\nmove 9 from 4 to 9\nmove 7 from 5 to 1\nmove 2 from 5 to 6\nmove 1 from 1 to 4\nmove 1 from 4 to 3\nmove 2 from 1 to 2\nmove 5 from 3 to 6\nmove 2 from 6 to 1\nmove 13 from 7 to 6\nmove 2 from 3 to 4\nmove 2 from 2 to 9\nmove 2 from 7 to 8\nmove 6 from 9 to 2\nmove 1 from 9 to 3\nmove 1 from 5 to 2\nmove 7 from 1 to 2\nmove 1 from 6 to 7\nmove 1 from 4 to 8\nm" <> ...]
+```
+
+An alternative to build a data structure that represents our stacks of crates would be to create a list of lists. Each list represents a stack. So for the sample input of
+
+```
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+```
+
+Our resulting data structure would be
+
+```
+[["N", "Z"], ["D", "C", "M"], ["P"]]
+```
+
+What first comes to mind is that if I can transpose the input, it will get easier to work because it would look like this:
+
+```
+[[nil, "N", "Z"], ["D", "C", "M"], [nil, nil, "P"]]
+```
+
+If we consider `nil` as an "empty" slot in the stack... all that's left is to weed it to get to the resulting data structure.
+
+```elixir
+defmodule StackParser do
+  @moduledoc """
+  This module parses a single raw line into a list of crates or nils to represent "empty" slots
+
+    ## Examples
+
+      iex> StackParser.parse("[Z] [M] [P]")
+      ["Z", "M", "P"]
+
+      iex> StackParser.parse("[N] [C]    ")
+      ["N", "C", nil]
+
+      iex> StackParser.parse("    [D]    ")
+      [nil, "D", nil]
+
+  """
+  def parse(ln), do: parse(ln, [])
+
+  defp parse("", stack), do: stack
+
+  defp parse("    " <> rest, stack), do: parse(rest, stack ++ [nil])
+  defp parse("   " <> rest, stack), do: parse(rest, stack ++ [nil])
+
+  defp parse(" [" <> <<crate::bytes-size(1)>> <> "]" <> rest, stack),
+    do: parse(rest, stack ++ [crate])
+
+  defp parse("[" <> <<crate::bytes-size(1)>> <> "]" <> rest, stack),
+    do: parse(rest, stack ++ [crate])
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3 doctests, 0 failures
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, StackParser, <<70, 79, 82, 49, 0, 0, 9, ...>>, {:parse, 2}}
+```
+
+```elixir
+defmodule Transp do
+  # copied from https://elixirforum.com/t/transpose-a-list-of-lists-using-list-comprehension/17638
+  def transpose([[] | _]), do: []
+
+  def transpose(m) do
+    [Enum.map(m, &hd/1) | transpose(Enum.map(m, &tl/1))]
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Transp, <<70, 79, 82, 49, 0, 0, 6, ...>>, {:transpose, 1}}
+```
+
+```elixir
+crates =
+  crates_
+  |> String.split("\n")
+  |> Enum.drop(-1)
+  |> Enum.map(&StackParser.parse/1)
+  |> Transp.transpose()
+  # The following simply removes the nils
+  |> Enum.map(fn stack -> Enum.filter(stack, & &1) end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["C", "Q", "B"],
+  ["Z", "W", "Q", "R"],
+  ["V", "L", "R", "M", "B"],
+  ["W", "T", "V", "H", "Z", "C"],
+  ["G", "V", "N", "B", "H", "Z", "D"],
+  ["Q", "V", "F", "J", "C", "P", "N", "H"],
+  ["S", "Z", "W", "R", "T", "G", "D"],
+  ["P", "Z", "W", "B", "N", "M", "G", "C"],
+  ["P", "F", "Q", "W", "M", "B", "J", "N"]
+]
+```
+
+```elixir
+movements =
+  movements_
+  |> String.split("\n", trim: true)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+["move 3 from 6 to 2", "move 5 from 6 to 7", "move 6 from 2 to 5", "move 1 from 9 to 7",
+ "move 1 from 1 to 9", "move 1 from 5 to 3", "move 1 from 2 to 5", "move 3 from 4 to 5",
+ "move 10 from 7 to 3", "move 1 from 4 to 9", "move 6 from 8 to 7", "move 4 from 7 to 8",
+ "move 1 from 7 to 3", "move 1 from 1 to 2", "move 1 from 2 to 8", "move 1 from 9 to 1",
+ "move 3 from 9 to 4", "move 4 from 8 to 3", "move 4 from 7 to 1", "move 4 from 4 to 6",
+ "move 2 from 8 to 7", "move 9 from 3 to 8", "move 2 from 7 to 4", "move 3 from 4 to 9",
+ "move 4 from 1 to 9", "move 4 from 3 to 9", "move 2 from 1 to 4", "move 1 from 4 to 6",
+ "move 3 from 3 to 2", "move 1 from 2 to 8", "move 1 from 2 to 7", "move 3 from 6 to 2",
+ "move 2 from 6 to 7", "move 4 from 2 to 3", "move 3 from 7 to 9", "move 2 from 5 to 6",
+ "move 15 from 9 to 4", "move 4 from 9 to 2", "move 12 from 5 to 4", "move 9 from 8 to 5",
+ "move 25 from 4 to 7", "move 1 from 4 to 7", "move 1 from 4 to 8", "move 2 from 2 to 5",
+ "move 1 from 4 to 2", "move 23 from 7 to 6", "move 2 from 5 to 2", "move 22 from 6 to 8",
+ "move 4 from 5 to 9", "move 1 from 7 to 9", ...]
+```
+
+```elixir
+defmodule CrateMover9000 do
+  @moduledoc """
+  This module implenents the crane that moves crates around
+
+    ## Examples
+
+      iex> CrateMover9000.move_crates("move 1 from 2 to 1", [["N", "Z"], ["D", "C", "M"], ["P"]])
+      [["D", "N", "Z"], ["C", "M"], ["P"]]
+
+      iex> CrateMover9000.move_crates("move 3 from 1 to 3", [["D", "N", "Z"], ["C", "M"], ["P"]])
+      [[], ["C", "M"], ["Z", "N", "D", "P"]]
+
+      iex> CrateMover9000.move_crates("move 2 from 2 to 1", [[], ["C", "M"], ["Z", "N", "D", "P"]])
+      [["M", "C"], [], ["Z", "N", "D", "P"]]
+
+      iex> CrateMover9000.move_crates("move 1 from 1 to 2", [["M", "C"], [], ["Z", "N", "D", "P"]])
+      [["C"], ["M"], ["Z", "N", "D", "P"]]
+
+  """
+  def move_crates(
+        "move " <>
+          <<qty::bytes-size(1)>> <>
+          " from " <> <<src::bytes-size(1)>> <> " to " <> <<dst::bytes-size(1)>>,
+        crates
+      ) do
+    _move(String.to_integer(qty), String.to_integer(src) - 1, String.to_integer(dst) - 1, crates)
+  end
+
+  # this is an ugly hack because sometimes qty has 2 digits (10, 11, ...)
+  # and I don't know how to pattern match on variable length
+  def move_crates(
+        "move " <>
+          <<qty::bytes-size(2)>> <>
+          " from " <> <<src::bytes-size(1)>> <> " to " <> <<dst::bytes-size(1)>>,
+        crates
+      ) do
+    _move(String.to_integer(qty), String.to_integer(src) - 1, String.to_integer(dst) - 1, crates)
+  end
+
+  defp _move(1, src, dst, crates) do
+    [crate | rest] = Enum.at(crates, src)
+
+    crates
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {_, ^src} -> rest
+      {stack, ^dst} -> [crate] ++ stack
+      {stack, _} -> stack
+    end)
+  end
+
+  defp _move(qty, src, dst, crates) do
+    moved_crates = _move(1, src, dst, crates)
+    _move(qty - 1, src, dst, moved_crates)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+4 doctests, 0 failures
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, CrateMover9000, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:_move, 4}}
+```
+
+```elixir
+resulting_stacks =
+  movements
+  |> Enum.reduce(crates, fn cmd, moved_crates ->
+    CrateMover9000.move_crates(cmd, moved_crates)
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["B"],
+  ["W", "F", "T", "T", "Z", "Z", "B", "C", "S", "V", "F"],
+  ["N", "W", "H", "C", "H", "H", "N", "V", "G", "N", "Z", "G", "B", "J"],
+  ["C"],
+  ["Q"],
+  ["R", "V", "Q", "W", "N", "L", "W", "P", "M", "C", "B", "V"],
+  ["M", "R", "P", "W"],
+  ["D", "Z", "Z", "P"],
+  ["B", "R", "Q", "M", "J", "Q", "G", "D"]
+]
+```
+
+```elixir
+resulting_stacks
+|> Enum.map(&hd/1)
+|> Enum.join()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"BWNCQRMDB"
+```
+
+## Part 2
+
+```elixir
+defmodule CrateMover9001 do
+  @moduledoc """
+  This module implenents the crane that moves crates around
+
+    ## Examples
+
+      iex> CrateMover9001.move_crates("move 1 from 2 to 1", [["N", "Z"], ["D", "C", "M"], ["P"]])
+      [["D", "N", "Z"], ["C", "M"], ["P"]]
+
+      iex> CrateMover9001.move_crates("move 3 from 1 to 3", [["D", "N", "Z"], ["C", "M"], ["P"]])
+      [[], ["C", "M"], ["D", "N", "Z", "P"]]
+
+      iex> CrateMover9001.move_crates("move 2 from 2 to 1", [[], ["C", "M"], ["D", "N", "Z", "P"]])
+      [["C", "M"], [], ["D", "N", "Z", "P"]]
+
+      iex> CrateMover9001.move_crates("move 1 from 1 to 2", [["C", "M"], [], ["D", "N", "Z", "P"]])
+      [["M"], ["C"], ["D", "N", "Z", "P"]]
+
+  """
+  def move_crates(
+        "move " <>
+          <<qty::bytes-size(1)>> <>
+          " from " <> <<src::bytes-size(1)>> <> " to " <> <<dst::bytes-size(1)>>,
+        crates
+      ) do
+    _move(String.to_integer(qty), String.to_integer(src) - 1, String.to_integer(dst) - 1, crates)
+  end
+
+  # this is an ugly hack because sometimes qty has 2 digits (10, 11, ...)
+  # and I don't know how to pattern match on variable length
+  def move_crates(
+        "move " <>
+          <<qty::bytes-size(2)>> <>
+          " from " <> <<src::bytes-size(1)>> <> " to " <> <<dst::bytes-size(1)>>,
+        crates
+      ) do
+    _move(String.to_integer(qty), String.to_integer(src) - 1, String.to_integer(dst) - 1, crates)
+  end
+
+  defp _move(qty, src, dst, crates) do
+    src_stack =
+      crates
+      |> Enum.at(src)
+
+    picked =
+      src_stack
+      |> Enum.take(qty)
+
+    remaining =
+      src_stack
+      |> Enum.take(-(length(src_stack) - qty))
+
+    crates
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {_, ^src} -> remaining
+      {stack, ^dst} -> picked ++ stack
+      {stack, _} -> stack
+    end)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+4 doctests, 0 failures
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, CrateMover9001, <<70, 79, 82, 49, 0, 0, 12, ...>>, {:_move, 4}}
+```
+
+```elixir
+real_resulting_stacks =
+  movements
+  |> Enum.reduce(crates, fn cmd, moved_crates ->
+    CrateMover9001.move_crates(cmd, moved_crates)
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["N"],
+  ["H", "R", "B", "P", "H", "W", "V", "V", "F", "C", "V"],
+  ["W", "Z", "C", "R", "Z", "D", "G", "B", "B", "P", "N", "J", "W", "M"],
+  ["Z"],
+  ["C"],
+  ["B", "T", "Z", "M", "R", "T", "Q", "Q", "P", "L", "G", "M"],
+  ["N", "G", "W", "W"],
+  ["B", "S", "J", "C"],
+  ["F", "Z", "D", "Q", "Q", "V", "H", "N"]
+]
+```
+
+```elixir
+real_resulting_stacks
+|> Enum.map(&hd/1)
+|> Enum.join()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"NHWZCBNBF"
+```
