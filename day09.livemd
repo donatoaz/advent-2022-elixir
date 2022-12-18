@@ -1,0 +1,83 @@
+# Day 9: Rope Bridge
+
+```elixir
+Mix.install([{:kino, "~> 0.8.0"}, {:kino_bumblebee, "~> 0.1.0"}, {:exla, "~> 0.4.1"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+moves =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n", " "], trim: true)
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn [dir, count] -> {dir, String.to_integer(count)} end)
+```
+
+## Part 1 - Tailgating
+
+```elixir
+defmodule Tailgater do
+  defp move_x("R"), do: 1
+  defp move_x("L"), do: -1
+  defp move_x(_), do: 0
+
+  defp move_y("U"), do: 1
+  defp move_y("D"), do: -1
+  defp move_y(_), do: 0
+
+  def delta_tx(dx, _) when dx <= -2, do: 1
+  def delta_tx(dx, _) when dx >= 2, do: -1
+  # diagonal moves
+  def delta_tx(-1, -2), do: 1
+  def delta_tx(1, -2), do: -1
+  def delta_tx(1, 2), do: -1
+  def delta_tx(-1, 2), do: 1
+  def delta_tx(_, _), do: 0
+
+  defp delta_ty(_, dy) when dy <= -2, do: 1
+  defp delta_ty(_, dy) when dy >= 2, do: -1
+  # diagonal moves
+  defp delta_ty(-2, -1), do: 1
+  defp delta_ty(-2, 1), do: -1
+  defp delta_ty(2, 1), do: -1
+  defp delta_ty(2, -1), do: 1
+  defp delta_ty(_, _), do: 0
+
+  def move([], _, _, visited), do: visited
+
+  def move([{cmd, 1} | moves], {hx, hy}, {tx, ty}, visited) do
+    # move head to new pos
+    new_hx = hx + move_x(cmd)
+    new_hy = hy + move_y(cmd)
+
+    new_tx = tx + delta_tx(tx - new_hx, ty - new_hy)
+    new_ty = ty + delta_ty(tx - new_hx, ty - new_hy)
+
+    new_visited = MapSet.put(visited, {new_tx, new_ty})
+
+    move(moves, {new_hx, new_hy}, {new_tx, new_ty}, new_visited)
+  end
+
+  def move([{cmd, n} | moves], h, t, visited) do
+    move([{cmd, 1}, {cmd, n - 1} | moves], h, t, visited)
+  end
+end
+```
+
+```elixir
+Tailgater.move(moves, {0, 0}, {0, 0}, MapSet.new([{0, 0}])) |> Enum.count()
+```
+
+## Part 2: Rope snaps
+
+*This level beat me..., got the solution from mario melo's github*
+
+https://github.com/mariomelo/advent_of_code_2022
