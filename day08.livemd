@@ -1,0 +1,157 @@
+# Day 8 - Treetop Tree House
+
+```elixir
+Mix.install([{:kino, "~> 0.8.0"}, {:kino_bumblebee, "~> 0.1.0"}, {:exla, "~> 0.4.1"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please insert your input")
+```
+
+```elixir
+tree_rows =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn row -> String.split(row, "", trim: true) |> Enum.map(&String.to_integer/1) end)
+
+# columns are simply a transposition of the rows
+tree_cols =
+  Enum.zip(tree_rows)
+  |> Enum.map(&Tuple.to_list/1)
+```
+
+## Part 1 - How many trees are visible from the edges?
+
+```elixir
+defmodule TreeCount do
+  def visible_from_left(grid, y, x) do
+    row = Enum.fetch!(grid, y)
+    elm = Enum.fetch!(row, x)
+
+    # an item is visible from the left if all elements that come
+    #  before it are lower than itself
+    row
+    |> Enum.take(x)
+    |> Enum.all?(&(&1 < elm))
+  end
+
+  def visible_from_right(grid, y, x) do
+    row = Enum.fetch!(grid, y)
+    elm = Enum.fetch!(row, x)
+
+    # an item is visible from the right if all elements that come
+    #  after it are lower than itself
+    row
+    |> Enum.take(-(length(row) - 1 - x))
+    |> Enum.all?(&(&1 < elm))
+  end
+end
+```
+
+```elixir
+visibles =
+  for y <- 0..(length(tree_rows) - 1), x <- 0..(length(tree_cols) - 1), into: [] do
+    # check if visible from each edge
+    visible_from_left = TreeCount.visible_from_left(tree_rows, y, x)
+    visible_from_right = TreeCount.visible_from_right(tree_rows, y, x)
+
+    # when we rotate the grid, x and y change position
+    visible_from_top = TreeCount.visible_from_left(tree_cols, x, y)
+    visible_from_bottom = TreeCount.visible_from_right(tree_cols, x, y)
+
+    visible_from_left or
+      visible_from_top or
+      visible_from_right or
+      visible_from_bottom
+  end
+
+visibles |> Enum.count(& &1)
+```
+
+## Part 2 - Scenic view
+
+```elixir
+defmodule TreeView do
+  @moduledoc """
+  This module parses a single raw line into a list of crates or nils to represent "empty" slots
+
+    ## Examples
+
+      iex> TreeView.visible_to_the_right([[3, 0, 3, 7, 3], [2, 5, 5, 1, 2], [6, 5, 3, 3, 2], [3, 3, 5, 4, 9], [3, 5, 3, 9, 0]], 3, 2)
+      2
+
+      iex> TreeView.visible_to_the_right([[3, 2, 6, 3, 3], [0, 5, 5, 3, 5], [3, 5, 3, 5, 3], [7, 1, 3, 4, 9], [3, 2, 2, 9, 0]], 2, 3)
+      1
+
+      iex> TreeView.visible_to_the_left([[3, 0, 3, 7, 3], [2, 5, 5, 1, 2], [6, 5, 3, 3, 2], [3, 3, 5, 4, 9], [3, 5, 3, 9, 0]], 3, 2)
+      2
+
+      iex> TreeView.visible_to_the_left([[3, 2, 6, 3, 3], [0, 5, 5, 3, 5], [3, 5, 3, 5, 3], [7, 1, 3, 4, 9], [3, 2, 2, 9, 0]], 2, 3)
+      2
+  """
+
+  def visible_to_the_right(grid, y, x) do
+    row = Enum.fetch!(grid, y)
+    elm = Enum.fetch!(row, x)
+
+    num_items_to_the_right = -(length(row) - 1 - x)
+    # a tree will see to the right as many items as there are
+    #  of at least its height. Since all could be smaller (causing
+    #  find_index/2 to return nil, we need to coalesce it with ||)
+    vis =
+      row
+      |> Enum.take(num_items_to_the_right)
+      |> Enum.find_index(&(&1 >= elm)) ||
+        -num_items_to_the_right - 1
+
+    vis + 1
+  end
+
+  def visible_to_the_left(grid, y, x) do
+    row = Enum.fetch!(grid, y)
+    elm = Enum.fetch!(row, x)
+
+    num_items_to_the_left = x
+    # a tree will see to the left as many items as something
+    #  of its same height. Since all could be smaller (causing
+    #  find_index/2 to return nil, we need to coalesce it with ||).
+    # The "-1" is there as a hack because index is count - 1, so we
+    # add it back at return time
+    vis =
+      row
+      |> Enum.take(num_items_to_the_left)
+      |> Enum.reverse()
+      |> Enum.find_index(&(&1 >= elm)) ||
+        num_items_to_the_left - 1
+
+    vis + 1
+  end
+end
+```
+
+```elixir
+tree_view =
+  for y <- 1..(length(tree_rows) - 2), x <- 1..(length(tree_cols) - 2), into: [] do
+    # calculate the number of visible trees to each direction
+
+    visible_to_the_left = TreeView.visible_to_the_left(tree_rows, y, x)
+    visible_to_the_right = TreeView.visible_to_the_right(tree_rows, y, x)
+
+    # when we rotate the grid, x and y change position
+    visible_to_the_top = TreeView.visible_to_the_left(tree_cols, x, y)
+    visible_to_the_bottom = TreeView.visible_to_the_right(tree_cols, x, y)
+
+    # multiply together
+    visible_to_the_left *
+      visible_to_the_top *
+      visible_to_the_right *
+      visible_to_the_bottom
+  end
+
+tree_view |> Enum.max()
+```
